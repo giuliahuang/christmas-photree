@@ -1,10 +1,86 @@
-import React, { useRef } from 'react';
-import { Stars, Gift, Volume2, Upload, Hand, Box } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Stars, Gift, Volume2, VolumeX, Upload, Hand, Box } from 'lucide-react';
 import { useStore } from '../store';
 
 export const Overlay: React.FC = () => {
   const { addPhoto, mode, setMode } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
+
+  // Setup audio when ref is available
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Configure audio properties
+    audio.volume = 0.3; // Set volume to 30%
+    audio.loop = true; // Loop the music
+
+    // Wait for audio to be ready before playing
+    const handleCanPlay = () => {
+      setAudioReady(true);
+      // Attempt to play - may require user interaction on some browsers
+      audio.play().catch((error) => {
+        console.log('Auto-play prevented:', error);
+        // Music will play when user interacts with the page
+      });
+    };
+
+    // If audio is already loaded, try to play immediately
+    if (audio.readyState >= 2) {
+      handleCanPlay();
+    } else {
+      audio.addEventListener('canplay', handleCanPlay);
+    }
+
+    return () => {
+      audio.removeEventListener('canplay', handleCanPlay);
+    };
+  }, []);
+
+  // Play audio on first user interaction if autoplay was blocked
+  useEffect(() => {
+    let hasPlayed = false;
+
+    const handleUserInteraction = () => {
+      const audio = audioRef.current;
+      if (audio && audio.paused && !hasPlayed) {
+        hasPlayed = true;
+        audio.play().catch((error) => {
+          console.log('Failed to play audio on interaction:', error);
+          hasPlayed = false; // Retry on next interaction
+        });
+      }
+    };
+
+    // Add listeners for user interaction (only once per event type)
+    document.addEventListener('click', handleUserInteraction, { once: true });
+    document.addEventListener('touchstart', handleUserInteraction, { once: true });
+    document.addEventListener('keydown', handleUserInteraction, { once: true });
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, []);
+
+  // Handle mute/unmute
+  const toggleMute = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      // If audio is paused and user clicks unmute, try to play
+      if (audio.paused && isMuted) {
+        audio.play().catch((error) => {
+          console.log('Failed to play audio:', error);
+        });
+      }
+      audio.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -29,8 +105,11 @@ export const Overlay: React.FC = () => {
         </div>
         
         <div className="flex flex-col gap-2 items-end">
-            <button className="pointer-events-auto text-arix-gold hover:text-white transition-colors duration-500">
-                <Volume2 size={24} />
+            <button 
+                onClick={toggleMute}
+                className="pointer-events-auto text-arix-gold hover:text-white transition-colors duration-500"
+            >
+                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
             </button>
             <div className="text-arix-gold/50 text-[10px] font-serif uppercase tracking-widest mt-2">
                 Gesture Control Active
@@ -91,6 +170,14 @@ export const Overlay: React.FC = () => {
            </p>
         </div>
       </footer>
+
+      {/* Background Music */}
+      <audio 
+        ref={audioRef}
+        src="/background-music.mp3"
+        preload="auto"
+        crossOrigin="anonymous"
+      />
     </div>
   );
 };

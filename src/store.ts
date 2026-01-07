@@ -23,8 +23,6 @@ export const controls = {
 // Load photos from the photos folder
 const initialPhotos = loadPhotosFromFolder();
 
-console.log("initialPhotos", initialPhotos)
-
 export const useStore = create<AppState>((set) => ({
   mode: 'TREE',
   // Load photos from the photos folder, or use a placeholder if no photos are found
