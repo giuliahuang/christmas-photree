@@ -1,11 +1,67 @@
-import React, { Suspense, useRef } from 'react';
+import React, { Suspense, useRef, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, PerspectiveCamera, ContactShadows, BakeShadows } from '@react-three/drei';
+import { OrbitControls, Environment, PerspectiveCamera, ContactShadows, BakeShadows, useProgress } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { ArixTree } from './Tree';
 import { HandController } from './HandController';
 import { useStore } from '../store';
+
+// Component to track loading progress and notify store
+const LoadingTracker: React.FC = () => {
+  const { progress, active } = useProgress();
+  const setLoaded = useStore((state) => state.setLoaded);
+  const setLoadingProgress = useStore((state) => state.setLoadingProgress);
+  const isLoaded = useStore((state) => state.isLoaded);
+  const maxProgressRef = useRef(0);
+  const hasTriggeredLoadedRef = useRef(false);
+  
+  useEffect(() => {
+    // Only update progress if it's moving forward (prevents flickering back to 0)
+    if (progress > maxProgressRef.current) {
+      maxProgressRef.current = progress;
+      setLoadingProgress(progress);
+    }
+    
+    // Also mark as loaded when progress reaches 100 OR when not actively loading
+    // and we haven't already triggered this
+    if (!hasTriggeredLoadedRef.current && !isLoaded) {
+      if (progress >= 100 || (!active && progress > 0)) {
+        hasTriggeredLoadedRef.current = true;
+        setLoadingProgress(100);
+        // Add a small delay to ensure everything is fully ready
+        setTimeout(() => {
+          setLoaded(true);
+        }, 2000);
+      }
+    }
+  }, [progress, active, isLoaded, setLoaded, setLoadingProgress]);
+  
+  return null;
+};
+
+// Component to control tree visibility
+const TreeContainer: React.FC = () => {
+  const hasStarted = useStore((state) => state.hasStarted);
+  const groupRef = useRef<THREE.Group>(null);
+  
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      // Smoothly animate opacity/scale based on hasStarted
+      const targetScale = hasStarted ? 1 : 0;
+      groupRef.current.scale.lerp(
+        new THREE.Vector3(targetScale, targetScale, targetScale),
+        delta * 3
+      );
+    }
+  });
+  
+  return (
+    <group ref={groupRef} position={[0, -0.5, 0]} scale={0}>
+      <ArixTree />
+    </group>
+  );
+};
 
 const Lighting: React.FC = () => {
   return (
@@ -119,10 +175,12 @@ export const Experience: React.FC = () => {
         
         <color attach="background" args={['#020403']} />
         
+        {/* Loading tracker - tracks progress and notifies store */}
+        <LoadingTracker />
+        
         <Suspense fallback={null}>
-            <group position={[0, -0.5, 0]}>
-                <ArixTree />
-            </group>
+            {/* Tree with visibility control */}
+            <TreeContainer />
             
             <Lighting />
             

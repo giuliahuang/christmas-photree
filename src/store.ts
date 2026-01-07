@@ -8,11 +8,17 @@ interface AppState {
   mode: AppMode;
   photos: string[];
   focusedPhotoIndex: number | null;
+  isLoaded: boolean;
+  hasStarted: boolean;
+  loadingProgress: number;
   
   setMode: (mode: AppMode) => void;
   addPhoto: (url: string) => void;
   setFocusedPhoto: (index: number | null) => void;
   toggleMode: () => void;
+  setLoaded: (loaded: boolean) => void;
+  setStarted: (started: boolean) => void;
+  setLoadingProgress: (progress: number) => void;
 }
 
 // Mutable state for high-frequency updates (animation loop)
@@ -30,6 +36,9 @@ export const useStore = create<AppState>((set) => ({
     ? initialPhotos 
     : ['https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600'],
   focusedPhotoIndex: null,
+  isLoaded: false,
+  hasStarted: false,
+  loadingProgress: 0,
 
   setMode: (mode) => set({ mode }),
   
@@ -42,5 +51,11 @@ export const useStore = create<AppState>((set) => ({
 
   toggleMode: () => set((state) => ({
     mode: state.mode === 'TREE' ? 'SCATTER' : 'TREE'
-  }))
+  })),
+
+  setLoaded: (loaded) => set({ isLoaded: loaded }),
+  
+  setStarted: (started) => set({ hasStarted: started }),
+  
+  setLoadingProgress: (progress) => set({ loadingProgress: progress })
 }));

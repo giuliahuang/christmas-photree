@@ -7,7 +7,7 @@ import { OrnamentSphere, OrnamentCube, CandyCane, PhotoFrame, StarOrnament } fro
 import { MatteGreenMaterial } from './Materials';
 
 // Particle definition
-type ParticleType = 'LEAF' | 'GOLD_SPHERE' | 'RED_CUBE' | 'GOLD_CUBE' | 'CANDY' | 'PHOTO' | 'STAR';
+type ParticleType = 'LEAF' | 'GOLD_SPHERE' | 'RED_SPHERE' | 'RED_CUBE' | 'GOLD_CUBE' | 'CANDY' | 'PHOTO' | 'STAR';
 
 interface ParticleData {
   id: number;
@@ -21,10 +21,11 @@ interface ParticleData {
   photoIndex?: number;
 }
 
-// Increased count for a much fuller, luxurious tree
-const PARTICLE_COUNT = 800;
+// Tree configuration
+const TARGET_PARTICLE_COUNT = 700; // Target count (may be less due to spacing)
 const TREE_HEIGHT = 7;
-const TREE_RADIUS_BASE = 3.2;
+const TREE_RADIUS_BASE = 3;
+const MIN_SPACING = 0.3; // Minimum distance between ornaments
 
 export const ArixTree: React.FC = () => {
   const { mode, photos, setFocusedPhoto, focusedPhotoIndex } = useStore();
@@ -45,11 +46,12 @@ export const ArixTree: React.FC = () => {
     }
   });
 
-  // Generate static particle data once
+  // Generate static particle data with minimum spacing to avoid overlaps
   const particles = useMemo(() => {
     const data: ParticleData[] = [];
+    const placedPositions: THREE.Vector3[] = [];
     
-    // Helper to get random point in sphere
+    // Helper to get random point in sphere for scatter
     const getRandomSpherePos = (radius: number) => {
         const u = Math.random();
         const v = Math.random();
@@ -62,68 +64,100 @@ export const ArixTree: React.FC = () => {
             r * Math.cos(phi)
         );
     };
+    
+    // Helper to generate a random tree position on cone surface
+    const generateTreePos = () => {
+      const hNorm = Math.sqrt(Math.random()); 
+      const y = (1 - hNorm) * TREE_HEIGHT - (TREE_HEIGHT / 2);
+      const rBase = hNorm * TREE_RADIUS_BASE;
+      const r = rBase * (0.8 + Math.random() * 0.3);
+      const angle = Math.random() * Math.PI * 2;
+      return new THREE.Vector3(Math.cos(angle) * r, y, Math.sin(angle) * r);
+    };
+    
+    // Helper to check if position is too close to existing positions
+    const isTooClose = (pos: THREE.Vector3, minDist: number) => {
+      for (const existing of placedPositions) {
+        if (pos.distanceTo(existing) < minDist) {
+          return true;
+        }
+      }
+      return false;
+    };
 
     // 1. Add The Star at the Top
+    const starPos = new THREE.Vector3(0, TREE_HEIGHT / 2 + 0.2, 0);
+    placedPositions.push(starPos);
     data.push({
         id: -1,
         type: 'STAR',
-        treePos: new THREE.Vector3(0, TREE_HEIGHT / 2 + 0.2, 0),
+        treePos: starPos,
         scatterPos: new THREE.Vector3(0, 4, 0),
         rotation: new THREE.Euler(0, 0, 0),
         rotationSpeed: new THREE.Vector3(0, 0.5, 0),
         scale: 1.0
     });
 
-    // 2. Generate Tree Body
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      // Tree Position (Cone with Volume)
-      // Normalized height 0 (top) to 1 (bottom)
-      // USE SQRT for Uniform Surface Distribution:
-      // Area of cone slice is proportional to h^2. To sample uniformly over area, we use sqrt(random).
-      const hNorm = Math.sqrt(Math.random()); 
+    // 2. Generate Tree Body with spacing check
+    let attempts = 0;
+    const maxAttempts = TARGET_PARTICLE_COUNT * 10; // Limit total attempts
+    let particleId = 0;
+    
+    while (data.length < TARGET_PARTICLE_COUNT + 1 && attempts < maxAttempts) {
+      attempts++;
       
-      const y = (1 - hNorm) * TREE_HEIGHT - (TREE_HEIGHT / 2);
+      // Generate candidate position
+      const treePos = generateTreePos();
       
-      // Add volume: radius varies slightly to create depth (80% to 110% of surface)
-      const rBase = hNorm * TREE_RADIUS_BASE;
-      const r = rBase * (0.8 + Math.random() * 0.3);
-      
-      const angle = Math.random() * Math.PI * 2;
-      
-      const treePos = new THREE.Vector3(
-        Math.cos(angle) * r,
-        y,
-        Math.sin(angle) * r
-      );
-
-      // Scatter Position (Sphere cloud)
-      const scatterPos = getRandomSpherePos(9);
-
-      // Determine Type
-      let type: ParticleType = 'LEAF';
+      // Determine type first to calculate appropriate spacing
       const rand = Math.random();
+      let type: ParticleType;
+      let typeSpacing = MIN_SPACING;
       
-      if (rand < 0.28) type = 'LEAF';
-      else if (rand < 0.43) type = 'RED_CUBE';
-      else if (rand < 0.58) type = 'GOLD_CUBE';
-      else if (rand < 0.84) type = 'GOLD_SPHERE';
-      else type = 'CANDY'; 
+      if (rand < 0.10) {
+        type = 'GOLD_SPHERE';
+        typeSpacing = MIN_SPACING; // Leaves can be closer
+      } else if (rand < 0.35) {
+        type = 'RED_CUBE';
+        typeSpacing = MIN_SPACING;
+      } else if (rand < 0.50) {
+        type = 'GOLD_CUBE';
+        typeSpacing = MIN_SPACING;
+      } else if (rand < 0.80) {
+        type = 'GOLD_SPHERE';
+        typeSpacing = MIN_SPACING;
+      } else {
+        type = 'CANDY';
+        typeSpacing = MIN_SPACING * 1.3; // Candy canes need more space
+      }
+      
+      // Check spacing
+      if (isTooClose(treePos, typeSpacing)) {
+        continue; // Try again with new position
+      }
+      
+      // Position is valid, add the particle
+      placedPositions.push(treePos.clone());
+      
+      const scatterPos = getRandomSpherePos(9);
+      const scale = 0.5 + Math.random() * 0.5;
 
       data.push({
-        id: i,
+        id: particleId++,
         type,
         treePos,
         scatterPos,
         rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
-        // Generate a random tumble speed vector for each particle
         rotationSpeed: new THREE.Vector3(
             (Math.random() - 0.5) * 0.8,
             (Math.random() - 0.5) * 0.8,
             (Math.random() - 0.5) * 0.8
         ),
-        scale: 0.5 + Math.random() * 0.5
+        scale
       });
     }
+    
+    console.log(`Tree generated with ${data.length} particles (${attempts} attempts)`);
     return data;
   }, []);
 
@@ -273,6 +307,7 @@ const Particle: React.FC<{
         switch (data.type) {
             case 'STAR': return <StarOrnament />;
             case 'GOLD_SPHERE': return <OrnamentSphere />;
+            case 'RED_SPHERE': return <OrnamentSphere color="RED" />;
             case 'RED_CUBE': return <OrnamentCube color="RED" />;
             case 'GOLD_CUBE': return <OrnamentCube color="GOLD" />;
             case 'CANDY': return <CandyCane />;

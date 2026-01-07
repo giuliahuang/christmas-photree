@@ -12,10 +12,10 @@ const RedMaterial = () => (
   <meshStandardMaterial color="#E63946" roughness={0.3} metalness={0.1} />
 );
 
-export const OrnamentSphere: React.FC = () => (
+export const OrnamentSphere: React.FC<{ color?: 'RED' | 'GOLD' }> = ({ color = 'GOLD' }) => (
   <mesh>
     <sphereGeometry args={[0.15, 32, 32]} />
-    <GoldMaterial />
+    {color === 'GOLD' ? <GoldMaterial /> : <RedMaterial />}
   </mesh>
 );
 

@@ -303,7 +303,7 @@ export const HandController: React.FC = () => {
                 if (currentMode === 'SCATTER') {
                     // Controls speed: Normalized (-1 to 1)
                     // Multiplier 1.5 gives good responsiveness, smoothed by Tree.tsx
-                    controls.rotationSpeed = (wrist.x - 0.5) * 0.2;
+                    controls.rotationSpeed = (wrist.x - 0.5) * 0.6;
                 } else {
                     controls.rotationSpeed = 0;
                 }
@@ -347,26 +347,20 @@ export const HandController: React.FC = () => {
             className="absolute top-0 left-0 w-4 h-4 -ml-2 -mt-2 bg-white rounded-full shadow-[0_0_40px_15px_rgba(255,255,255,0.6)] pointer-events-none transition-opacity duration-500 ease-in-out opacity-0 z-50 mix-blend-screen"
         />
 
-        {/* Video Preview Box */}
-        <div className="absolute bottom-4 left-4 z-40 overflow-hidden rounded-lg border border-arix-gold/20 bg-black/50 backdrop-blur w-48 h-36 shadow-lg transition-opacity duration-500 pointer-events-auto">
-            <div className="relative w-full h-full">
-                <video 
-                    ref={videoRef} 
-                    autoPlay 
-                    playsInline 
-                    className="absolute inset-0 w-full h-full object-cover opacity-80"
-                    style={{ transform: 'scaleX(-1)' }} 
-                />
-                <canvas 
-                    ref={canvasRef}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ transform: 'scaleX(-1)' }}
-                />
-            </div>
-            {loading && <div className="absolute inset-0 flex items-center justify-center text-arix-gold text-xs">Init Camera...</div>}
-            <div className="absolute top-1 left-1 flex gap-1 items-center z-10">
-                <div className={`w-2 h-2 rounded-full ${loading ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`}></div>
-            </div>
+        {/* Hidden Video Element - Required for MediaPipe gesture detection */}
+        <div className="absolute -left-[9999px] opacity-0 pointer-events-none" aria-hidden="true">
+            <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                width={640}
+                height={480}
+            />
+            <canvas 
+                ref={canvasRef}
+                width={640}
+                height={480}
+            />
         </div>
     </Html>
   );

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Stars, Gift, Volume2, VolumeX, Upload, Hand, Box } from 'lucide-react';
+import { Stars, Gift, Volume2, VolumeX, Upload, Hand, Box, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 
 export const Overlay: React.FC = () => {
@@ -178,6 +178,101 @@ export const Overlay: React.FC = () => {
         preload="auto"
         crossOrigin="anonymous"
       />
+    </div>
+  );
+};
+
+// Loading Screen Component
+export const LoadingScreen: React.FC = () => {
+  const { isLoaded, hasStarted, setStarted, loadingProgress } = useStore();
+  
+  const handleStart = () => {
+    setStarted(true);
+  };
+  
+  // Don't render if already started
+  if (hasStarted) {
+    return null;
+  }
+  
+  return (
+    <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-1000 ${hasStarted ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      {/* Ambient background glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-arix-emerald/10 via-transparent to-transparent" />
+      
+      {/* Decorative elements */}
+      <div className="absolute top-1/4 left-1/4 w-1 h-1 bg-arix-gold rounded-full animate-pulse opacity-60" />
+      <div className="absolute top-1/3 right-1/3 w-0.5 h-0.5 bg-arix-goldLight rounded-full animate-pulse opacity-40" style={{ animationDelay: '0.5s' }} />
+      <div className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-arix-gold rounded-full animate-pulse opacity-50" style={{ animationDelay: '1s' }} />
+      <div className="absolute bottom-1/4 right-1/4 w-0.5 h-0.5 bg-arix-goldLight rounded-full animate-pulse opacity-30" style={{ animationDelay: '1.5s' }} />
+      
+      {/* Main content */}
+      <div className="relative flex flex-col items-center gap-8">
+        {/* Title */}
+        <div className="text-center mb-4">
+          <h1 className="text-arix-gold font-display text-5xl md:text-7xl tracking-wider drop-shadow-lg mb-3">
+            ARIX
+          </h1>
+          <p className="text-arix-goldLight font-serif italic text-sm md:text-lg tracking-[0.3em] uppercase opacity-70">
+            Interactive Christmas
+          </p>
+        </div>
+        
+        {/* Loading indicator or Start button */}
+        {!isLoaded ? (
+          <div className="flex flex-col items-center gap-6">
+            {/* Progress bar container */}
+            <div className="relative w-64 md:w-80">
+              {/* Background track */}
+              <div className="h-[2px] bg-arix-gold/20 rounded-full overflow-hidden">
+                {/* Progress fill */}
+                <div 
+                  className="h-full bg-gradient-to-r from-arix-gold/60 via-arix-gold to-arix-goldLight transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${Math.min(loadingProgress, 100)}%` }}
+                />
+              </div>
+              
+              {/* Progress percentage */}
+              <div className="mt-4 text-center">
+                <span className="text-arix-gold font-display text-xl tracking-widest">
+                  {Math.floor(loadingProgress)}%
+                </span>
+              </div>
+            </div>
+            
+            {/* Loading text */}
+            <p className="text-arix-goldLight/60 font-serif text-xs tracking-[0.2em] uppercase animate-pulse">
+              Preparing the magic...
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={handleStart}
+            className="group relative flex flex-col items-center gap-4 transition-all duration-500 hover:scale-105"
+          >
+            {/* Button glow effect */}
+            <div className="absolute inset-0 -m-8 bg-arix-gold/5 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            {/* Icon */}
+            <div className="relative p-5 rounded-full border-2 border-arix-gold/40 bg-black/40 backdrop-blur-sm group-hover:border-arix-gold group-hover:bg-arix-gold/10 transition-all duration-500">
+              <Sparkles className="w-8 h-8 text-arix-gold group-hover:text-arix-goldLight transition-colors duration-500" />
+            </div>
+            
+            {/* Button text */}
+            <span className="text-arix-gold font-display text-2xl md:text-3xl tracking-[0.4em] uppercase group-hover:text-arix-goldLight transition-colors duration-500">
+              Start
+            </span>
+            
+            {/* Subtitle */}
+            <span className="text-arix-goldLight/50 font-serif text-xs tracking-[0.2em] uppercase group-hover:text-arix-goldLight/70 transition-colors duration-500">
+              Click to enter
+            </span>
+          </button>
+        )}
+        
+        {/* Decorative line */}
+        <div className="w-32 h-px bg-gradient-to-r from-transparent via-arix-gold/40 to-transparent mt-8" />
+      </div>
     </div>
   );
 };
