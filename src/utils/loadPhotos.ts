@@ -5,12 +5,12 @@
 // Supported formats: jpg, jpeg, png, gif, webp (case-insensitive)
 // Using multiple glob patterns to catch both uppercase and lowercase extensions
 // Using ?url to explicitly get URL strings instead of default imports
-const photoModulesLower = import.meta.glob<string>('../photos/*.{jpg,jpeg,png,gif,webp}?url', {
+const photoModulesLower = import.meta.glob<string>('../photos/*.{jpg,jpeg,png,gif,webp}', {
   eager: true,
   import: 'default'
 }) as Record<string, string>;
 
-const photoModulesUpper = import.meta.glob<string>('../photos/*.{JPG,JPEG,PNG,GIF,WEBP}?url', {
+const photoModulesUpper = import.meta.glob<string>('../photos/*.{JPG,JPEG,PNG,GIF,WEBP}', {
   eager: true,
   import: 'default'
 }) as Record<string, string>;
@@ -27,7 +27,6 @@ export const loadPhotosFromFolder = (): string[] => {
   // With ?url query, import.meta.glob returns URL strings directly
   const photos = Object.values(photoModules) as string[];
 
- 
   // Sort photos alphabetically for consistent ordering
   return photos.sort();
 };
